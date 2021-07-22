@@ -5,12 +5,12 @@ VisualStudioVersion = 16.0.30611.23
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WiFiCon_ESP32", "WiFiCon_ESP32\WiFiCon_ESP32.vcxproj", "{C5F80730-F44F-4478-BDAE-6634EFC2CA88}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ESP32-Arduino-CAN-master-0.0.1", "WiFiCon_ESP32\Libraries\ESP32-Arduino-CAN-master\0.0.1\ESP32-Arduino-CAN-master\ESP32-Arduino-CAN-master-0.0.1.vcxitems", "{D6EDF0E7-BF10-4916-9B93-1C00F0569D18}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "esp32_can-master-0.2.5", "WiFiCon_ESP32\Libraries\esp32_can-master\0.2.5\esp32_can-master\esp32_can-master-0.2.5.vcxitems", "{C17E3199-36C0-4CA0-83DA-B97239DFDAB8}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		WiFiCon_ESP32\Libraries\ESP32-Arduino-CAN-master\0.0.1\ESP32-Arduino-CAN-master\ESP32-Arduino-CAN-master-0.0.1.vcxitems*{c5f80730-f44f-4478-bdae-6634efc2ca88}*SharedItemsImports = 4
-		WiFiCon_ESP32\Libraries\ESP32-Arduino-CAN-master\0.0.1\ESP32-Arduino-CAN-master\ESP32-Arduino-CAN-master-0.0.1.vcxitems*{d6edf0e7-bf10-4916-9b93-1c00f0569d18}*SharedItemsImports = 9
+		WiFiCon_ESP32\Libraries\esp32_can-master\0.2.5\esp32_can-master\esp32_can-master-0.2.5.vcxitems*{c17e3199-36c0-4ca0-83da-b97239dfdab8}*SharedItemsImports = 9
+		WiFiCon_ESP32\Libraries\esp32_can-master\0.2.5\esp32_can-master\esp32_can-master-0.2.5.vcxitems*{c5f80730-f44f-4478-bdae-6634efc2ca88}*SharedItemsImports = 4
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86

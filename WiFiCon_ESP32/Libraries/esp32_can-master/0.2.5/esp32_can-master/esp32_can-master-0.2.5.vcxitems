@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding ="utf-8" ?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+  <PropertyGroup Label="Globals" >
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{c17e3199-36c0-4ca0-83da-b97239dfdab8}</ItemsProjectGuid>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\esp32_can.cpp" />
+<ClCompile Include="$(MSBuildThisFileDirectory)src\esp32_can_builtin.cpp" />
+<ClCompile Include="$(MSBuildThisFileDirectory)src\esp32_can_builtin_lowlevel.cpp" />
+<ClCompile Include="$(MSBuildThisFileDirectory)src\mcp2515.cpp" />
+<ClCompile Include="$(MSBuildThisFileDirectory)src\mcp2517fd.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)src\can_config.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)src\can_regdef.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)src\esp32_can.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)src\esp32_can_builtin.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)src\esp32_can_builtin_lowlevel.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)src\mcp2515.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)src\mcp2515_defs.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)src\mcp2517fd.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)src\mcp2517fd_defines.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)src\mcp2517fd_regs.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="$(MSBuildThisFileDirectory)keywords.txt" />
+<Text Include="$(MSBuildThisFileDirectory)library.properties" />
+<Text Include="$(MSBuildThisFileDirectory)license.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)README.md" />
+  </ItemGroup>
+</Project>

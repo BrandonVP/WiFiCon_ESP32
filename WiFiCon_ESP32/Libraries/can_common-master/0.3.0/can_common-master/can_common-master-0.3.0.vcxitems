@@ -3,7 +3,7 @@
   <PropertyGroup Label="Globals" >
     <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
     <HasSharedItems>true</HasSharedItems>
-    <ItemsProjectGuid>{53458cba-40b9-491c-9c36-79cb47e856d5}</ItemsProjectGuid>
+    <ItemsProjectGuid>{4936b46c-2776-4f4a-bf9e-665e5b254680}</ItemsProjectGuid>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -14,18 +14,14 @@
     <ProjectCapability Include="SourceItemsFromImports" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="$(MSBuildThisFileDirectory)src\CAN.c" />
-<ClCompile Include="$(MSBuildThisFileDirectory)src\ESP32CAN.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\can_common.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="$(MSBuildThisFileDirectory)src\CAN.h" />
-<ClInclude Include="$(MSBuildThisFileDirectory)src\CAN_config.h" />
-<ClInclude Include="$(MSBuildThisFileDirectory)src\can_regdef.h" />
-<ClInclude Include="$(MSBuildThisFileDirectory)src\ESP32CAN.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)src\can_common.h" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="$(MSBuildThisFileDirectory)keywords.txt" />
-<Text Include="$(MSBuildThisFileDirectory)library.properties" />
+    <Text Include="$(MSBuildThisFileDirectory)library.properties" />
+<Text Include="$(MSBuildThisFileDirectory)license.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)LICENSE" />

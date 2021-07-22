@@ -2,45 +2,71 @@
  Name:		WiFiCon_ESP32.ino
  Created:	2/10/2021 4:36:16 PM
  Author:	Brandon Van Pelt
+ Description: This program is a CAN Bus to WiFi bridge
+ Current use: CAN Bus -> ESP32 -> WifI -> ESP-12E - > Arduino Due Controller
 */
 
+// This device MAC Address:  24:6F:28:9D:A7:8C
+
+#if CONFIG_FREERTOS_UNICORE
+
+#define ESP32_RUNNING_CORE 0
+#else
+#define ESP32_RUNNING_CORE 1
+#endif
+
+//#include <can_common.h>
+#include <esp32_can.h>
 #include <esp_now.h>
 #include <WiFi.h>
 #include <Arduino.h>
-#include <ESP32CAN.h>
-#include <CAN_config.h>
 
-// CAN Bus Variables
-CAN_device_t CAN_cfg;               // CAN Config
-unsigned long previousMillis = 0;   // will store last time a CAN Message was send
-const int interval = 1000;          // interval at which send CAN Messages (milliseconds)
-const int rx_queue_size = 10;       // Receive Queue size
-CAN_frame_t rx_frame;
+//#define DEBUG
+#define CAN_BAUD_RATE 500000
+#define SERIAL_BAUD_RATE 115200
+#define ID_MATCH 0xFFF
+#define ARM1_RX 0x0C1
+#define ARM2_RX 0x0C2
 
 // REPLACE WITH THE MAC Address of your receiver 
 uint8_t broadcastAddress[] = { 0xD8, 0xF1, 0x5B, 0x15, 0x8E, 0x9A };
 
-// Variable to store if sending data was successful
-String success;
+// Task declarations
+void TaskEmptyBuffer(void* pvParameters);
 
-// Structure example to receive data
-// Must match the sender structure
+// CAN Bus structure
 typedef struct struct_message {
     uint16_t ID;
     uint8_t MSG[8];
 } struct_message;
 
-struct_message rxCANFrame[10];
+struct_message rxCANFrame[20];
 struct_message txCANFrame;
 
+void printFrame(CAN_FRAME* message)
+{
+    Serial.print(message->id, HEX);
+    if (message->extended) Serial.print(" X ");
+    else Serial.print(" S ");
+    Serial.print(message->length, DEC);
+    for (int i = 0; i < message->length; i++) {
+        Serial.print(message->data.byte[i], HEX);
+        Serial.print(" ");
+    }
+    Serial.println();
+}
+
+/*=========================================================
+            Circular Buffer
+===========================================================*/
 uint8_t CANInPtr = 0;
 uint8_t CANOutPtr = 0;
-uint8_t CAN_MSG_In_Buff = 0;
+extern uint8_t CAN_MSG_In_Buff = 0;
 
 uint8_t CAN_Buff_In()
 {
     uint8_t temp = CANInPtr;
-    if (CANInPtr < 8)
+    if (CANInPtr < 18)
     {
         CANInPtr++;
     }
@@ -57,7 +83,7 @@ uint8_t CAN_Buff_Out()
     if (CAN_MSG_In_Buff > 0)
     {
         uint8_t temp = CANOutPtr;
-        if (CANOutPtr < 8)
+        if (CANOutPtr < 18)
         {
             CANOutPtr++;
         }
@@ -71,29 +97,81 @@ uint8_t CAN_Buff_Out()
     return 0;
 }
 
-// callback function that will be executed when data is received
+
+/*=========================================================
+            Callbacks
+===========================================================*/
 void OnDataRecv(const uint8_t* mac, const uint8_t* incomingData, int len)
 {
+#if defined DEBUG
+    Serial.println("recieved");
+#endif
+    
     uint8_t buffPtr = CAN_Buff_In();
     memcpy(&rxCANFrame[buffPtr], incomingData, sizeof(rxCANFrame[buffPtr]));
+
+#if defined DEBUG
+    Serial.println(CAN_MSG_In_Buff);
+#endif
 }
 
-// Callback when data is sent
-void OnDataSent(const uint8_t* mac_addr, esp_now_send_status_t status) {
+void OnDataSent(const uint8_t* mac_addr, esp_now_send_status_t status) 
+{
     Serial.print("\r\nLast Packet Send Status:\t");
     Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
-    if (status == 0) {
-        success = "Delivery Success :)";
+}
+
+void CANBusRX(CAN_FRAME* frame)
+{
+    printFrame(frame);
+    txCANFrame.ID = frame->id;
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        txCANFrame.MSG[i] = frame->data.uint8[i];
     }
-    else {
-        success = "Delivery Fail :(";
+    esp_now_send(broadcastAddress, (uint8_t*)&txCANFrame, sizeof(txCANFrame));
+}
+
+
+/*=========================================================
+            Tasks
+===========================================================*/
+void TaskEmptyBuffer(void* pvParameters)
+{
+    (void)pvParameters;
+    for (;;) 
+    {
+#if defined DEBUG
+        Serial.println(CAN_MSG_In_Buff);
+#endif
+
+        if (CAN_MSG_In_Buff > 0)
+        {
+            // Get CAN Bus Frame buffer location
+            uint8_t buffPtr = CAN_Buff_Out();
+
+            CAN_FRAME TxFrame;
+            TxFrame.rtr = 0;
+            TxFrame.id = rxCANFrame[buffPtr].ID;
+            TxFrame.extended = false;
+            TxFrame.length = 8;
+            for (uint8_t i = 0; i < 8; i++)
+            {
+                TxFrame.data.uint8[i] = rxCANFrame[buffPtr].MSG[i];
+            }
+            CAN0.sendFrame(TxFrame);
+        }
+        vTaskDelay(20);
     }
 }
 
+
+/*=========================================================
+            Setup
+===========================================================*/
 void setup()
 {
-    // Initialize Serial Monitor
-    Serial.begin(115200);
+    Serial.begin(SERIAL_BAUD_RATE);
 
     // Set device as a Wi-Fi Station
     WiFi.mode(WIFI_STA);
@@ -105,19 +183,6 @@ void setup()
         return;
     }
 
-    // Set device as a Wi-Fi Station
-    WiFi.mode(WIFI_STA);
-
-    // Init ESP-NOW
-    if (esp_now_init() != ESP_OK) {
-        Serial.println("Error initializing ESP-NOW");
-        return;
-    }
-
-    // Once ESPNow is successfully Init, we will register for Send CB to
-    // get the status of Trasnmitted packet
-    esp_now_register_send_cb(OnDataSent);
-
     // Register peer
     esp_now_peer_info_t peerInfo;
     memcpy(peerInfo.peer_addr, broadcastAddress, 6);
@@ -126,52 +191,33 @@ void setup()
 
     // Add peer        
     if (esp_now_add_peer(&peerInfo) != ESP_OK) {
-        Serial.println("Failed to add peer");
+        Serial.println(F("Failed to add peer"));
         return;
     }
-    // Register for a callback function that will be called when data is received
+
+    esp_now_register_send_cb(OnDataSent);
     esp_now_register_recv_cb(OnDataRecv);
 
     // CAN Bus setup
-    CAN_cfg.speed = CAN_SPEED_500KBPS;
-    CAN_cfg.tx_pin_id = GPIO_NUM_25;
-    CAN_cfg.rx_pin_id = GPIO_NUM_26;
-    CAN_cfg.rx_queue = xQueueCreate(rx_queue_size, sizeof(CAN_frame_t));
-    // Init CAN Module
-    ESP32Can.CANInit();
-    Serial.println("Setup Done");
+    CAN0.setCANPins(GPIO_NUM_26, GPIO_NUM_25);
+    CAN0.begin(CAN_BAUD_RATE);
+    CAN0.watchFor(ARM1_RX, ID_MATCH); // Filter 0
+    CAN0.setCallback(0, CANBusRX); // Callback filter 0
+    CAN0.watchFor(ARM2_RX, ID_MATCH); // Filter 1
+    CAN0.setCallback(1, CANBusRX); // Callback filter 1
+    Serial.println(F("Setup complete"));
+
+    xTaskCreatePinnedToCore(
+        TaskEmptyBuffer
+        , "TaskEmptyBuffer"
+        , 1024  // This stack size can be checked & adjusted by reading the Stack Highwater
+        , NULL
+        , 1  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
+        , NULL
+        , ESP32_RUNNING_CORE);
 }
 
 void loop()
 {
-    if (CAN_MSG_In_Buff > 0)
-    {
-        // Get CAN Bus Frame buffer location
-        uint8_t buffPtr = CAN_Buff_Out();
-
-        CAN_frame_t tx_frame;
-        tx_frame.FIR.B.FF = CAN_frame_std;
-        tx_frame.MsgID = rxCANFrame[buffPtr].ID;
-        tx_frame.FIR.B.DLC = 8;
-        for (uint8_t i = 0; i < 8; i++)
-        {
-            tx_frame.data.u8[i] = rxCANFrame[buffPtr].MSG[i];
-        }
-        ESP32Can.CANWriteFrame(&tx_frame);
-    }
-
-    // Receive next CAN frame from queue
-    if (xQueueReceive(CAN_cfg.rx_queue, &rx_frame, 3 * portTICK_PERIOD_MS) == pdTRUE)
-    {
-        // Filter messages
-        if (rx_frame.MsgID == 0xC1 || rx_frame.MsgID == 0xC2)
-        {
-            txCANFrame.ID = rx_frame.MsgID;
-            for (uint8_t i = 0; i < 8; i++)
-            {
-                txCANFrame.MSG[i] = rx_frame.data.u8[i];
-            }
-            esp_now_send(broadcastAddress, (uint8_t*)&txCANFrame, sizeof(txCANFrame));
-        }
-    }
+    // Nothing to see here
 }
