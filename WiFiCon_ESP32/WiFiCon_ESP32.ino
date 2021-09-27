@@ -3,7 +3,7 @@
  Created:	2/10/2021 4:36:16 PM
  Author:	Brandon Van Pelt
  Description: This program is a CAN Bus to WiFi bridge
- Current use: CAN Bus -> ESP32 -> WifI -> ESP-12E - > Arduino Due Controller
+ Current use: Mega2560 -> ~CAN Bus~ -> ESP32 -> ~WifI~ -> ESP-12E -> ~Serial~ -> Arduino Due Controller
 */
 
 // This device MAC Address:  24:6F:28:9D:A7:8C
@@ -27,6 +27,7 @@
 #define ID_MATCH 0xFFF
 #define ARM1_RX 0x0C1
 #define ARM2_RX 0x0C2
+#define BUFFER_SIZE 32
 
 // REPLACE WITH THE MAC Address of your receiver 
 uint8_t broadcastAddress[] = { 0xD8, 0xF1, 0x5B, 0x15, 0x8E, 0x9A };
@@ -43,6 +44,7 @@ typedef struct struct_message {
 struct_message rxCANFrame[20];
 struct_message txCANFrame;
 
+// esp32_can library print frame method used for testing / debugging
 void printFrame(CAN_FRAME* message)
 {
     Serial.print(message->id, HEX);
@@ -59,63 +61,58 @@ void printFrame(CAN_FRAME* message)
 /*=========================================================
             Circular Buffer
 ===========================================================*/
-uint8_t CANInPtr = 0;
-uint8_t CANOutPtr = 0;
-extern uint8_t CAN_MSG_In_Buff = 0;
+uint8_t bufferInPtr = 0;
+uint8_t bufferOutPtr = 0;
 
 uint8_t CAN_Buff_In()
 {
-    uint8_t temp = CANInPtr;
-    if (CANInPtr < 18)
+    uint8_t temp = bufferInPtr;
+    (bufferInPtr < BUFFER_SIZE - 1) ? bufferInPtr++ : bufferInPtr = 0;
+    if (bufferInPtr == bufferOutPtr)
     {
-        CANInPtr++;
+        (bufferOutPtr < (BUFFER_SIZE - 1)) ? bufferOutPtr++ : bufferOutPtr = 0;
     }
-    else
-    {
-        CANInPtr = 0;
-    }
-    CAN_MSG_In_Buff++;
     return temp;
 }
 
 uint8_t CAN_Buff_Out()
 {
-    if (CAN_MSG_In_Buff > 0)
-    {
-        uint8_t temp = CANOutPtr;
-        if (CANOutPtr < 18)
-        {
-            CANOutPtr++;
-        }
-        else
-        {
-            CANOutPtr = 0;
-        }
-        CAN_MSG_In_Buff--;
-        return temp;
-    }
-    return 0;
+    uint8_t temp = bufferOutPtr;
+    (bufferOutPtr < BUFFER_SIZE - 1) ? bufferOutPtr++ : bufferOutPtr = 0;
+    return temp;
 }
 
+// Calculates current structures in buffer by subtracting points then anding with max buffer size value
+uint8_t stack_size()
+{
+    uint8_t size = (bufferInPtr - bufferOutPtr) & (BUFFER_SIZE - 1);
+    return size;
+}
 
 /*=========================================================
             Callbacks
 ===========================================================*/
+//#define DEBUG_OnDataRecv
+#if defined DEBUG_OnDataRecv
+volatile uint16_t test_id = 0;
+volatile uint8_t test_data[8];
+#endif
+// 
 void OnDataRecv(const uint8_t* mac, const uint8_t* incomingData, int len)
 {
-#if defined DEBUG
-    Serial.println("recieved");
-#endif
-    
     uint8_t buffPtr = CAN_Buff_In();
     memcpy(&rxCANFrame[buffPtr], incomingData, sizeof(rxCANFrame[buffPtr]));
-
-#if defined DEBUG
-    Serial.println(CAN_MSG_In_Buff);
+#if defined DEBUG_OnDataRecv
+    Serial.println("");
+    Serial.println("");
+    Serial.println("**************OnDataRecv()**************");
+    Serial.print("ID: ");
+    test_id = rxCANFrame[buffPtr].ID;
+    Serial.println(test_id, 16);
 #endif
 }
 
-void OnDataSent(const uint8_t* mac_addr, esp_now_send_status_t status) 
+void OnDataSent(const uint8_t* mac_addr, esp_now_send_status_t status)
 {
     Serial.print("\r\nLast Packet Send Status:\t");
     Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
@@ -139,13 +136,9 @@ void CANBusRX(CAN_FRAME* frame)
 void TaskEmptyBuffer(void* pvParameters)
 {
     (void)pvParameters;
-    for (;;) 
+    for (;;)
     {
-#if defined DEBUG
-        Serial.println(CAN_MSG_In_Buff);
-#endif
-
-        if (CAN_MSG_In_Buff > 0)
+        if (stack_size() > 0)
         {
             // Get CAN Bus Frame buffer location
             uint8_t buffPtr = CAN_Buff_Out();
