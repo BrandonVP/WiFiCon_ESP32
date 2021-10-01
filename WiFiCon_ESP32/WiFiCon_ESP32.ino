@@ -41,7 +41,7 @@ typedef struct struct_message {
     uint8_t MSG[8];
 } struct_message;
 
-struct_message rxCANFrame[20];
+struct_message rxCANFrame[BUFFER_SIZE];
 struct_message txCANFrame;
 
 // esp32_can library print frame method used for testing / debugging
@@ -108,19 +108,21 @@ void OnDataRecv(const uint8_t* mac, const uint8_t* incomingData, int len)
     Serial.println("**************OnDataRecv()**************");
     Serial.print("ID: ");
     test_id = rxCANFrame[buffPtr].ID;
-    Serial.println(test_id, 16);
+    Serial.print(test_id, 16);
+    Serial.print(" Ptr: ");
+    Serial.println(buffPtr);
 #endif
 }
 
 void OnDataSent(const uint8_t* mac_addr, esp_now_send_status_t status)
 {
-    Serial.print("\r\nLast Packet Send Status:\t");
-    Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+    //Serial.print("\r\nLast Packet Send Status:\t");
+    //Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }
 
 void CANBusRX(CAN_FRAME* frame)
 {
-    printFrame(frame);
+    //printFrame(frame);
     txCANFrame.ID = frame->id;
     for (uint8_t i = 0; i < 8; i++)
     {
@@ -152,6 +154,7 @@ void TaskEmptyBuffer(void* pvParameters)
             {
                 TxFrame.data.uint8[i] = rxCANFrame[buffPtr].MSG[i];
             }
+            //printFrame(&TxFrame);
             CAN0.sendFrame(TxFrame);
         }
         vTaskDelay(20);
