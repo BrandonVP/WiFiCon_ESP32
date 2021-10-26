@@ -92,7 +92,7 @@ uint8_t stack_size()
 /*=========================================================
             Callbacks
 ===========================================================*/
-//#define DEBUG_OnDataRecv
+#define DEBUG_OnDataRecv
 #if defined DEBUG_OnDataRecv
 volatile uint16_t test_id = 0;
 volatile uint8_t test_data[8];
