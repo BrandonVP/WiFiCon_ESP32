@@ -6,8 +6,6 @@
  Current use: Mega2560 -> ~CAN Bus~ -> ESP32 -> ~WifI~ -> ESP-12E -> ~Serial~ -> Arduino Due Controller
 */
 
-// This device MAC Address:  24:6F:28:9D:A7:8C
-
 #if CONFIG_FREERTOS_UNICORE
 
 #define ESP32_RUNNING_CORE 0
@@ -20,6 +18,7 @@
 #include <esp_now.h>
 #include <WiFi.h>
 #include <Arduino.h>
+#include <esp_wifi.h>
 
 //#define DEBUG
 #define CAN_BAUD_RATE 500000
@@ -36,7 +35,8 @@ uint8_t broadcastAddress[] = { 0xD8, 0xF1, 0x5B, 0x15, 0x8E, 0x9A };
 void TaskEmptyBuffer(void* pvParameters);
 
 // CAN Bus structure
-typedef struct struct_message {
+typedef struct struct_message 
+{
     uint16_t ID;
     uint8_t MSG[8];
 } struct_message;
@@ -92,7 +92,7 @@ uint8_t stack_size()
 /*=========================================================
             Callbacks
 ===========================================================*/
-#define DEBUG_OnDataRecv
+//#define DEBUG_OnDataRecv
 #if defined DEBUG_OnDataRecv
 volatile uint16_t test_id = 0;
 volatile uint8_t test_data[8];
@@ -104,6 +104,10 @@ void OnDataRecv(const uint8_t* mac, const uint8_t* incomingData, int len)
     memcpy(&rxCANFrame[buffPtr], incomingData, sizeof(rxCANFrame[buffPtr]));
 #if defined DEBUG_OnDataRecv
     Serial.println("");
+    Serial.print("MAC: ");
+    Serial.println(mac[0]);
+    Serial.print("Len: ");
+    Serial.println(len);
     Serial.println("");
     Serial.println("**************OnDataRecv()**************");
     Serial.print("ID: ");
@@ -114,15 +118,21 @@ void OnDataRecv(const uint8_t* mac, const uint8_t* incomingData, int len)
 #endif
 }
 
+//#define DEBUG_OnDataSent
 void OnDataSent(const uint8_t* mac_addr, esp_now_send_status_t status)
 {
-    //Serial.print("\r\nLast Packet Send Status:\t");
-    //Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+#if defined DEBUG_OnDataSent
+    Serial.print("\r\nLast Packet Send Status:\t");
+    Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+#endif
 }
 
+//#define DEBUG_CANBusRX
 void CANBusRX(CAN_FRAME* frame)
 {
-    //printFrame(frame);
+#if defined DEBUG_OnDataSent
+    printFrame(frame);
+#endif
     txCANFrame.ID = frame->id;
     for (uint8_t i = 0; i < 8; i++)
     {
@@ -135,6 +145,7 @@ void CANBusRX(CAN_FRAME* frame)
 /*=========================================================
             Tasks
 ===========================================================*/
+//#define DEBUG_TaskEmptyBuffer
 void TaskEmptyBuffer(void* pvParameters)
 {
     (void)pvParameters;
@@ -154,7 +165,9 @@ void TaskEmptyBuffer(void* pvParameters)
             {
                 TxFrame.data.uint8[i] = rxCANFrame[buffPtr].MSG[i];
             }
-            //printFrame(&TxFrame);
+#if defined DEBUG_TaskEmptyBuffer
+            printFrame(&TxFrame);
+#endif
             CAN0.sendFrame(TxFrame);
         }
         vTaskDelay(20);
@@ -171,6 +184,10 @@ void setup()
 
     // Set device as a Wi-Fi Station
     WiFi.mode(WIFI_STA);
+
+    // IF you need the MAC Address
+    //Serial.print("Mac Address: ");
+    //Serial.print(WiFi.macAddress());
 
     // Init ESP-NOW
     if (esp_now_init() != ESP_OK)
