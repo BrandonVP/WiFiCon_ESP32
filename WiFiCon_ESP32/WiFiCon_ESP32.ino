@@ -236,7 +236,7 @@ void setup()
         , ESP32_RUNNING_CORE);
 }
 
-uint32_t timer55 = 0;
+//uint32_t timer55 = 0;
 void loop()
 {
     /* Test tranceiver
