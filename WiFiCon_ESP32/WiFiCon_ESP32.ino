@@ -27,9 +27,10 @@
 #define ARM1_RX 0x0C1
 #define ARM2_RX 0x0C2
 #define BUFFER_SIZE 32
-
+#define SIXDOF
 // REPLACE WITH THE MAC Address of your receiver 
-uint8_t broadcastAddress[] = { 0xD8, 0xF1, 0x5B, 0x15, 0x8E, 0x9A };
+//uint8_t broadcastAddress[] = { 0xD8, 0xF1, 0x5B, 0x15, 0x8E, 0x9A };
+uint8_t broadcastAddress[] = { 0x9C, 0x9C, 0x1F, 0xDD, 0x4B, 0xD0 };
 
 // Task declarations
 void TaskEmptyBuffer(void* pvParameters);
@@ -130,7 +131,7 @@ void OnDataSent(const uint8_t* mac_addr, esp_now_send_status_t status)
 //#define DEBUG_CANBusRX
 void CANBusRX(CAN_FRAME* frame)
 {
-#if defined DEBUG_OnDataSent
+#if defined DEBUG_CANBusRX
     printFrame(frame);
 #endif
     txCANFrame.ID = frame->id;
@@ -186,8 +187,8 @@ void setup()
     WiFi.mode(WIFI_STA);
 
     // IF you need the MAC Address
-    //Serial.print("Mac Address: ");
-    //Serial.print(WiFi.macAddress());
+    Serial.print("Mac Address: ");
+    Serial.print(WiFi.macAddress());
 
     // Init ESP-NOW
     if (esp_now_init() != ESP_OK)
@@ -214,11 +215,16 @@ void setup()
     // CAN Bus setup
     CAN0.setCANPins(GPIO_NUM_26, GPIO_NUM_25);
     CAN0.begin(CAN_BAUD_RATE);
+#if defined SIXDOF
     CAN0.watchFor(ARM1_RX, ID_MATCH); // Filter 0
     CAN0.setCallback(0, CANBusRX); // Callback filter 0
     CAN0.watchFor(ARM2_RX, ID_MATCH); // Filter 1
     CAN0.setCallback(1, CANBusRX); // Callback filter 1
-    Serial.println(F("Setup complete"));
+#else
+    CAN0.watchFor(0x0, 0x0); // Filter 0
+    CAN0.setCallback(0, CANBusRX); // Callback filter 0
+#endif
+    
 
     xTaskCreatePinnedToCore(
         TaskEmptyBuffer
@@ -230,7 +236,26 @@ void setup()
         , ESP32_RUNNING_CORE);
 }
 
+uint32_t timer55 = 0;
 void loop()
 {
+    /* Test tranceiver
+    if (millis() - timer55 > 1000)
+    {
+        CAN_FRAME TxFrame;
+        TxFrame.rtr = 0;
+        TxFrame.id = 0x01;
+        TxFrame.extended = false;
+        TxFrame.length = 8;
+        for (uint8_t i = 0; i < 8; i++)
+        {
+            TxFrame.data.uint8[i] = i;
+        }
+
+        CAN0.sendFrame(TxFrame);
+        Serial.println("sent");
+        timer55 = millis();
+    }
+    */
     // Nothing to see here
 }
