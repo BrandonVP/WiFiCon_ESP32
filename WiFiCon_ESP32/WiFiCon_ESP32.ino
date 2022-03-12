@@ -5,6 +5,13 @@
  Description: This program is a CAN Bus to WiFi bridge
  Current use: Mega2560 -> ~CAN Bus~ -> ESP32 -> ~WifI~ -> ESP-12E -> ~Serial~ -> Arduino Due Controller
 */
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
+
+//#define DEBUG_OnDataRecv
+//#define DEBUG_TaskEmptyBuffer
+//#define DEBUG_OnDataSent
+//#define DEBUG_CANBusRX
 
 #if CONFIG_FREERTOS_UNICORE
 
@@ -19,6 +26,7 @@
 #include <WiFi.h>
 #include <Arduino.h>
 #include <esp_wifi.h>
+#include "RGB_LED.h"
 
 //#define DEBUG
 #define CAN_BAUD_RATE 500000
@@ -27,7 +35,10 @@
 #define ARM1_RX 0x0C1
 #define ARM2_RX 0x0C2
 #define BUFFER_SIZE 32
-#define SIXDOF
+//#define SIXDOF
+
+// 94:B9:7E:D5:F1:94 // SOC PCB
+// Mac Address: C8:C9:A3:FB:20:20 // OBD2 V1.2
 // REPLACE WITH THE MAC Address of your receiver 
 //uint8_t broadcastAddress[] = { 0xD8, 0xF1, 0x5B, 0x15, 0x8E, 0x9A };
 uint8_t broadcastAddress[] = { 0x9C, 0x9C, 0x1F, 0xDD, 0x4B, 0xD0 };
@@ -93,7 +104,6 @@ uint8_t stack_size()
 /*=========================================================
             Callbacks
 ===========================================================*/
-//#define DEBUG_OnDataRecv
 #if defined DEBUG_OnDataRecv
 volatile uint16_t test_id = 0;
 volatile uint8_t test_data[8];
@@ -119,7 +129,7 @@ void OnDataRecv(const uint8_t* mac, const uint8_t* incomingData, int len)
 #endif
 }
 
-//#define DEBUG_OnDataSent
+
 void OnDataSent(const uint8_t* mac_addr, esp_now_send_status_t status)
 {
 #if defined DEBUG_OnDataSent
@@ -128,7 +138,7 @@ void OnDataSent(const uint8_t* mac_addr, esp_now_send_status_t status)
 #endif
 }
 
-//#define DEBUG_CANBusRX
+
 void CANBusRX(CAN_FRAME* frame)
 {
 #if defined DEBUG_CANBusRX
@@ -146,7 +156,6 @@ void CANBusRX(CAN_FRAME* frame)
 /*=========================================================
             Tasks
 ===========================================================*/
-//#define DEBUG_TaskEmptyBuffer
 void TaskEmptyBuffer(void* pvParameters)
 {
     (void)pvParameters;
@@ -181,6 +190,7 @@ void TaskEmptyBuffer(void* pvParameters)
 ===========================================================*/
 void setup()
 {
+    WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
     Serial.begin(SERIAL_BAUD_RATE);
 
     // Set device as a Wi-Fi Station
@@ -225,7 +235,15 @@ void setup()
     CAN0.setCallback(0, CANBusRX); // Callback filter 0
 #endif
     
+    // Setup RGB LEDs
+    pinMode(GPIO_NUM_15, OUTPUT);
+    pinMode(GPIO_NUM_16, OUTPUT);
+    pinMode(GPIO_NUM_17, OUTPUT);
+    pinMode(GPIO_NUM_32, OUTPUT);
+    pinMode(GPIO_NUM_33, OUTPUT);
+    pinMode(GPIO_NUM_14, OUTPUT);
 
+    //
     xTaskCreatePinnedToCore(
         TaskEmptyBuffer
         , "TaskEmptyBuffer"
@@ -236,12 +254,16 @@ void setup()
         , ESP32_RUNNING_CORE);
 }
 
-//uint32_t timer55 = 0;
+//bool LED = false;
+uint32_t timer55 = 0;
 void loop()
 {
-    /* Test tranceiver
+    strobe_LED_RGB();
+
+    /*
     if (millis() - timer55 > 1000)
     {
+        //digitalWrite(17, !LED);
         CAN_FRAME TxFrame;
         TxFrame.rtr = 0;
         TxFrame.id = 0x01;
@@ -256,6 +278,6 @@ void loop()
         Serial.println("sent");
         timer55 = millis();
     }
-    */
+   */
     // Nothing to see here
 }
