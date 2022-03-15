@@ -29,7 +29,8 @@
 #include "RGB_LED.h"
 
 //#define DEBUG
-#define CAN_BAUD_RATE 500000
+#define CAN_BAUD_RATE 1000000
+//#define CAN_BAUD_RATE 500000
 #define SERIAL_BAUD_RATE 115200
 #define ID_MATCH 0xFFF
 #define ARM1_RX 0x0C1

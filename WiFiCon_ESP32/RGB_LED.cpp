@@ -2,8 +2,10 @@
 // 
 // 
 #pragma once
-
 #include "RGB_LED.h"
+
+#ifndef _RGB_LED_CPP
+#define _RGB_LED_CPP
 
 bool cycleLED = true;
 uint32_t LEDTimer = 0;
@@ -93,3 +95,36 @@ void fast_strobe_LED(uint8_t color)
         LEDTimer = currentTime;
     }
 }
+
+struct strobeLEDs
+{
+    uint8_t color;
+    uint8_t interval;
+};
+
+uint8_t strobeQuene[16];
+uint8_t strobeQuePtr = 0;
+
+void strobeQue(uint8_t color)
+{
+    strobeQuePtr++;
+    strobeQuene[strobeQuePtr] = color;
+}
+
+uint16_t getInterval()
+{
+    if (strobeQuePtr > 0)
+    {
+        strobeQuePtr--;
+    }
+    if (strobeQuePtr > 0)
+    {
+        return LED_STROBE_INTERVAL - ((strobeQuePtr + 1) * 28);
+    }
+    else
+    {
+        return LED_STROBE_INTERVAL;
+    }
+}
+
+#endif // !_RGB_LED_CPP
