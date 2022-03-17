@@ -10,6 +10,19 @@
 bool cycleLED = true;
 uint32_t LEDTimer = 0;
 
+uint8_t strobeQuene[16];
+uint8_t strobeQuePtr = 0;
+
+uint16_t strobeSpeed = 500;
+
+void decreaseStrobeSpeed()
+{
+    if (strobeSpeed > 10)
+    {
+        strobeSpeed = strobeSpeed - 10;
+    }
+}
+
 // Set color and on/off status of RGB LED
 void RBG_LED(uint8_t color, bool isOn)
 {
@@ -62,7 +75,7 @@ void strobe_LED_RGB(void)
 
     uint32_t currentTime = millis();
 
-    if (currentTime - LEDTimer > LED_STROBE_INTERVAL)
+    if (currentTime - LEDTimer > LED_STROBE_INTERVAL)//LED_STROBE_INTERVAL)
     {
         RBG_LED(color, true);
         (color > BLUE) ? color = RED : color++;
@@ -75,9 +88,17 @@ void strobe_LED(uint8_t color)
 {
     uint32_t currentTime = millis();
 
-    if (currentTime - LEDTimer > LED_STROBE_INTERVAL)
+    if (currentTime - LEDTimer > getInterval() )//LED_STROBE_INTERVAL
     {
-        RBG_LED(color, cycleLED);
+        if (strobeQuePtr > 0)
+        {
+            RBG_LED(strobeQuene[strobeQuePtr], cycleLED);
+            strobeQuePtr--;
+        }
+        else
+        {
+            RBG_LED(color, cycleLED);
+        }
         cycleLED = !cycleLED;
         LEDTimer = currentTime;
     }
@@ -102,24 +123,22 @@ struct strobeLEDs
     uint8_t interval;
 };
 
-uint8_t strobeQuene[16];
-uint8_t strobeQuePtr = 0;
+
 
 void strobeQue(uint8_t color)
 {
-    strobeQuePtr++;
-    strobeQuene[strobeQuePtr] = color;
+    if (strobeQuePtr < 10)
+    {
+        strobeQuePtr++;
+        strobeQuene[strobeQuePtr] = color;
+    }
 }
 
 uint16_t getInterval()
 {
     if (strobeQuePtr > 0)
     {
-        strobeQuePtr--;
-    }
-    if (strobeQuePtr > 0)
-    {
-        return LED_STROBE_INTERVAL - ((strobeQuePtr + 1) * 28);
+        return LED_STROBE_INTERVAL - ((strobeQuePtr) * 50); 
     }
     else
     {

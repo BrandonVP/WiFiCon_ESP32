@@ -114,6 +114,7 @@ void OnDataRecv(const uint8_t* mac, const uint8_t* incomingData, int len)
 {
     uint8_t buffPtr = CAN_Buff_In();
     memcpy(&rxCANFrame[buffPtr], incomingData, sizeof(rxCANFrame[buffPtr]));
+    strobeQue(BLUE);
 #if defined DEBUG_OnDataRecv
     Serial.println("");
     Serial.print("MAC: ");
@@ -145,6 +146,7 @@ void CANBusRX(CAN_FRAME* frame)
 #if defined DEBUG_CANBusRX
     printFrame(frame);
 #endif
+    strobeQue(GREEN);
     txCANFrame.ID = frame->id;
     for (uint8_t i = 0; i < 8; i++)
     {
@@ -215,9 +217,9 @@ void setup()
     peerInfo.encrypt = false;
 
     // Add peer        
-    if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+    if (esp_now_add_peer(&peerInfo) != ESP_OK) 
+    {
         Serial.println(F("Failed to add peer"));
-        return;
     }
 
     esp_now_register_send_cb(OnDataSent);
@@ -259,8 +261,8 @@ void setup()
 uint32_t timer55 = 0;
 void loop()
 {
-    strobe_LED_RGB();
-
+    strobe_LED(RED);
+    
     /*
     if (millis() - timer55 > 1000)
     {
