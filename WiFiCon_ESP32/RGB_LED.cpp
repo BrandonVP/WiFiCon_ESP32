@@ -9,12 +9,47 @@
 
 bool cycleLED = true;
 uint32_t LEDTimer = 0;
-
-uint8_t strobeQuene[16];
-uint8_t strobeQuePtr = 0;
-
 uint16_t strobeSpeed = 500;
 
+/*=========================================================
+            Circular Buffer
+===========================================================*/
+uint8_t colorBufferInPtr = 0;
+uint8_t colorBufferOutPtr = 0;
+uint8_t strobeQuene[16];
+
+// LED color in
+uint8_t colorBufferIn()
+{
+    uint8_t temp = colorBufferInPtr;
+    (colorBufferInPtr < COLOR_BUFFER_SIZE - 1) ? colorBufferInPtr++ : colorBufferInPtr = 0;
+    if (colorBufferInPtr == colorBufferOutPtr)
+    {
+        (colorBufferOutPtr < (COLOR_BUFFER_SIZE - 1)) ? colorBufferOutPtr++ : colorBufferOutPtr = 0;
+    }
+    return temp;
+}
+
+// LED color out
+uint8_t colorBufferOut()
+{
+    uint8_t temp = colorBufferOutPtr;
+    (colorBufferOutPtr < COLOR_BUFFER_SIZE - 1) ? colorBufferOutPtr++ : colorBufferOutPtr = 0;
+    return temp;
+}
+
+// Calculates current structures in buffer by subtracting points then anding with max buffer size value
+uint8_t colorStackSize()
+{
+    uint8_t size = (colorBufferInPtr - colorBufferOutPtr) & (COLOR_BUFFER_SIZE - 1);
+    return size;
+}
+
+
+/*=========================================================
+            RGB LED
+===========================================================*/
+// Increase speed to match traffic
 void decreaseStrobeSpeed()
 {
     if (strobeSpeed > 10)
@@ -90,10 +125,9 @@ void strobe_LED(uint8_t color)
 
     if (currentTime - LEDTimer > getInterval() )//LED_STROBE_INTERVAL
     {
-        if (strobeQuePtr > 0)
+        if (colorStackSize() > 0)
         {
-            RBG_LED(strobeQuene[strobeQuePtr], cycleLED);
-            strobeQuePtr--;
+            RBG_LED(strobeQuene[colorBufferOut()], cycleLED);
         }
         else
         {
@@ -102,6 +136,12 @@ void strobe_LED(uint8_t color)
         cycleLED = !cycleLED;
         LEDTimer = currentTime;
     }
+}
+
+// Add color to buffer
+void strobeQue(uint8_t color)
+{
+    strobeQuene[colorBufferIn()] = color;
 }
 
 // Strobe Red Blue Green (RBG) colors
@@ -117,28 +157,12 @@ void fast_strobe_LED(uint8_t color)
     }
 }
 
-struct strobeLEDs
-{
-    uint8_t color;
-    uint8_t interval;
-};
-
-
-
-void strobeQue(uint8_t color)
-{
-    if (strobeQuePtr < 10)
-    {
-        strobeQuePtr++;
-        strobeQuene[strobeQuePtr] = color;
-    }
-}
-
+// Calculate the current interval
 uint16_t getInterval()
 {
-    if (strobeQuePtr > 0)
+    if (colorStackSize() > 0)
     {
-        return LED_STROBE_INTERVAL - ((strobeQuePtr) * 50); 
+        return LED_STROBE_INTERVAL - (colorStackSize() * 50);
     }
     else
     {

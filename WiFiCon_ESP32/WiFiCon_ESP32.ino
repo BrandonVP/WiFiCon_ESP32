@@ -12,6 +12,7 @@
 //#define DEBUG_TaskEmptyBuffer
 //#define DEBUG_OnDataSent
 //#define DEBUG_CANBusRX
+//#define DEBUG_CANBusTX
 
 #if CONFIG_FREERTOS_UNICORE
 
@@ -20,7 +21,6 @@
 #define ESP32_RUNNING_CORE 1
 #endif
 
-//#include <can_common.h>
 #include <esp32_can.h>
 #include <esp_now.h>
 #include <WiFi.h>
@@ -46,6 +46,9 @@ uint8_t broadcastAddress[] = { 0x9C, 0x9C, 0x1F, 0xDD, 0x4B, 0xD0 };
 
 // Task declarations
 void TaskEmptyBuffer(void* pvParameters);
+
+// Create semaphore handle
+SemaphoreHandle_t xBufferSemaphore;
 
 // CAN Bus structure
 typedef struct struct_message 
@@ -109,12 +112,17 @@ uint8_t stack_size()
 volatile uint16_t test_id = 0;
 volatile uint8_t test_data[8];
 #endif
-// 
+
+// WiFi data received
 void OnDataRecv(const uint8_t* mac, const uint8_t* incomingData, int len)
 {
     uint8_t buffPtr = CAN_Buff_In();
     memcpy(&rxCANFrame[buffPtr], incomingData, sizeof(rxCANFrame[buffPtr]));
+
+    xSemaphoreTake(xBufferSemaphore, portMAX_DELAY);
     strobeQue(BLUE);
+    xSemaphoreGive(xBufferSemaphore);
+
 #if defined DEBUG_OnDataRecv
     Serial.println("");
     Serial.print("MAC: ");
@@ -131,7 +139,7 @@ void OnDataRecv(const uint8_t* mac, const uint8_t* incomingData, int len)
 #endif
 }
 
-
+// WiFi data sent
 void OnDataSent(const uint8_t* mac_addr, esp_now_send_status_t status)
 {
 #if defined DEBUG_OnDataSent
@@ -140,19 +148,23 @@ void OnDataSent(const uint8_t* mac_addr, esp_now_send_status_t status)
 #endif
 }
 
-
+// CAN Bus incoming messages
 void CANBusRX(CAN_FRAME* frame)
 {
 #if defined DEBUG_CANBusRX
     printFrame(frame);
 #endif
-    strobeQue(GREEN);
+   
     txCANFrame.ID = frame->id;
     for (uint8_t i = 0; i < 8; i++)
     {
         txCANFrame.MSG[i] = frame->data.uint8[i];
     }
     esp_now_send(broadcastAddress, (uint8_t*)&txCANFrame, sizeof(txCANFrame));
+
+    xSemaphoreTake(xBufferSemaphore, portMAX_DELAY);
+    strobeQue(GREEN);
+    xSemaphoreGive(xBufferSemaphore);
 }
 
 
@@ -164,6 +176,7 @@ void TaskEmptyBuffer(void* pvParameters)
     (void)pvParameters;
     for (;;)
     {
+        // If traffic to empty
         if (stack_size() > 0)
         {
             // Get CAN Bus Frame buffer location
@@ -183,10 +196,21 @@ void TaskEmptyBuffer(void* pvParameters)
 #endif
             CAN0.sendFrame(TxFrame);
         }
-        vTaskDelay(20);
+        vTaskDelay(8);
     }
 }
 
+void TaskLEDControl(void* pvParameters)
+{
+    (void)pvParameters;
+    for (;;)
+    {
+        // Traffic status LED
+        xSemaphoreTake(xBufferSemaphore, portMAX_DELAY);
+        strobe_LED(RED);
+        xSemaphoreGive(xBufferSemaphore);
+    }
+}
 
 /*=========================================================
             Setup
@@ -246,24 +270,19 @@ void setup()
     pinMode(GPIO_NUM_33, OUTPUT);
     pinMode(GPIO_NUM_14, OUTPUT);
 
-    //
-    xTaskCreatePinnedToCore(
-        TaskEmptyBuffer
-        , "TaskEmptyBuffer"
-        , 1024  // This stack size can be checked & adjusted by reading the Stack Highwater
-        , NULL
-        , 1  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
-        , NULL
-        , ESP32_RUNNING_CORE);
+    xBufferSemaphore = xSemaphoreCreateCounting(1, 1);
+    xSemaphoreGive(xBufferSemaphore);
+
+    // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
+    xTaskCreatePinnedToCore(TaskEmptyBuffer, "TaskEmptyBuffer", 1024  , NULL, 2  , NULL, ESP32_RUNNING_CORE);
+    xTaskCreatePinnedToCore(TaskLEDControl, "TaskLEDControl", 1024, NULL, 3, NULL, ESP32_RUNNING_CORE);
+    vTaskStartScheduler();
 }
 
-//bool LED = false;
-uint32_t timer55 = 0;
-void loop()
+// For testing out new hardware
+void CANBusTXTest()
 {
-    strobe_LED(RED);
-    
-    /*
+    static uint32_t timer55 = 0;
     if (millis() - timer55 > 1000)
     {
         //digitalWrite(17, !LED);
@@ -281,6 +300,12 @@ void loop()
         Serial.println("sent");
         timer55 = millis();
     }
-   */
+}
+
+void loop()
+{
     // Nothing to see here
+#if defined DEBUG_CANBusTX
+    CANBusTXTest();
+#endif
 }

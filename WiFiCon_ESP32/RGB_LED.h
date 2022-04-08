@@ -4,6 +4,7 @@
 #define BLUE                      (2)
 #define GREEN                     (3)
 #define LED_STROBE_INTERVAL       (525)
+#define COLOR_BUFFER_SIZE		  (16)
 
 #ifndef _RGB_LED_h
 #define _RGB_LED_h
