@@ -15,7 +15,6 @@
 //#define DEBUG_CANBusTX
 
 #if CONFIG_FREERTOS_UNICORE
-
 #define ESP32_RUNNING_CORE 0
 #else
 #define ESP32_RUNNING_CORE 1
@@ -60,7 +59,7 @@ typedef struct struct_message
 struct_message rxCANFrame[BUFFER_SIZE];
 struct_message txCANFrame;
 
-// esp32_can library print frame method used for testing / debugging
+// esp32_can library print frame method used for testing and debugging
 void printFrame(CAN_FRAME* message)
 {
     Serial.print(message->id, HEX);
@@ -98,7 +97,7 @@ uint8_t CAN_Buff_Out()
     return temp;
 }
 
-// Calculates current structures in buffer by subtracting points then anding with max buffer size value
+// Calculates current structures in buffer by subtracting pointers then anding with max buffer size value
 uint8_t stack_size()
 {
     uint8_t size = (bufferInPtr - bufferOutPtr) & (BUFFER_SIZE - 1);
@@ -119,6 +118,7 @@ void OnDataRecv(const uint8_t* mac, const uint8_t* incomingData, int len)
     uint8_t buffPtr = CAN_Buff_In();
     memcpy(&rxCANFrame[buffPtr], incomingData, sizeof(rxCANFrame[buffPtr]));
 
+    // Add a blue flash to the buffer to indicate incoming WiFi traffic
     xSemaphoreTake(xBufferSemaphore, portMAX_DELAY);
     strobeQue(BLUE);
     xSemaphoreGive(xBufferSemaphore);
@@ -162,15 +162,16 @@ void CANBusRX(CAN_FRAME* frame)
     }
     esp_now_send(broadcastAddress, (uint8_t*)&txCANFrame, sizeof(txCANFrame));
 
+    // Add a green flash to the buffer to indicate incoming CAN Bus traffic
     xSemaphoreTake(xBufferSemaphore, portMAX_DELAY);
     strobeQue(GREEN);
     xSemaphoreGive(xBufferSemaphore);
 }
 
-
 /*=========================================================
             Tasks
 ===========================================================*/
+// Send messages received from WiFi out on the CAN Bus
 void TaskEmptyBuffer(void* pvParameters)
 {
     (void)pvParameters;
@@ -200,6 +201,7 @@ void TaskEmptyBuffer(void* pvParameters)
     }
 }
 
+// Task for RGB LED control
 void TaskLEDControl(void* pvParameters)
 {
     (void)pvParameters;
@@ -217,7 +219,10 @@ void TaskLEDControl(void* pvParameters)
 ===========================================================*/
 void setup()
 {
-    WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
+    //disable brownout detector
+    //WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); 
+
+    // For debug
     Serial.begin(SERIAL_BAUD_RATE);
 
     // Set device as a Wi-Fi Station
@@ -245,7 +250,6 @@ void setup()
     {
         Serial.println(F("Failed to add peer"));
     }
-
     esp_now_register_send_cb(OnDataSent);
     esp_now_register_recv_cb(OnDataRecv);
 
@@ -270,16 +274,15 @@ void setup()
     pinMode(GPIO_NUM_33, OUTPUT);
     pinMode(GPIO_NUM_14, OUTPUT);
 
+    // Setup FreeRTOS tasks and Semaphore
     xBufferSemaphore = xSemaphoreCreateCounting(1, 1);
     xSemaphoreGive(xBufferSemaphore);
-
-    // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
     xTaskCreatePinnedToCore(TaskEmptyBuffer, "TaskEmptyBuffer", 1024  , NULL, 2  , NULL, ESP32_RUNNING_CORE);
     xTaskCreatePinnedToCore(TaskLEDControl, "TaskLEDControl", 1024, NULL, 3, NULL, ESP32_RUNNING_CORE);
     vTaskStartScheduler();
 }
 
-// For testing out new hardware
+// For testing new hardware
 void CANBusTXTest()
 {
     static uint32_t timer55 = 0;
@@ -295,16 +298,15 @@ void CANBusTXTest()
         {
             TxFrame.data.uint8[i] = i;
         }
-
         CAN0.sendFrame(TxFrame);
         Serial.println("sent");
         timer55 = millis();
     }
 }
 
+// Nothing to see here
 void loop()
 {
-    // Nothing to see here
 #if defined DEBUG_CANBusTX
     CANBusTXTest();
 #endif

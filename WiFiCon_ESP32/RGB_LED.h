@@ -17,7 +17,6 @@
 #if defined _RGB_LED_CPP
 uint16_t getInterval();
 #endif // _RGB_LED_CPP
-
 extern void strobeQue(uint8_t);
 extern void RBG_LED(uint8_t, bool);
 extern void strobe_LED_RGB(void);
