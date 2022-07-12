@@ -66,7 +66,7 @@ void RBG_LED(RGB color, bool isOn)
         digitalWrite(GPIO_NUM_17, HIGH);
         digitalWrite(GPIO_NUM_32, HIGH);
         digitalWrite(GPIO_NUM_33, HIGH);
-        
+
         (isOn) ? digitalWrite(GPIO_NUM_15, LOW) : digitalWrite(GPIO_NUM_15, HIGH);
         (isOn) ? digitalWrite(GPIO_NUM_14, LOW) : digitalWrite(GPIO_NUM_14, HIGH);
     }
@@ -132,23 +132,37 @@ void strobe_LED_RGB(void)
 void strobe_LED(RGB color)
 {
     uint32_t currentTime = millis();
-
+    static uint8_t oldColor = 0;
+    int temp = 0;
     if (currentTime - LEDTimer > getInterval() )//LED_STROBE_INTERVAL
     {
-        //Serial.print("getInterval(): ");
-        //Serial.println(getInterval());
-        //Serial.print("Stack Size: ");
-        //Serial.println(colorStackSize());
-        if (colorStackSize() > 0)
+        if (cycleLED)
         {
-            //Serial.print("Color ");
-            //Serial.println(strobeQuene[colorBufferOut()]);
-            RBG_LED((RGB)strobeQuene[colorBufferOut()], cycleLED);
-            //RBG_LED((RGB)BLUE, cycleLED);
+            //Serial.print("getInterval(): ");
+            //Serial.println(getInterval());
+            //Serial.print("Stack Size: ");
+            //Serial.println(colorStackSize());
+            if (colorStackSize() > 0)
+            {
+                //Serial.print("Color ");
+                temp = strobeQuene[colorBufferOut()];
+                //Serial.println(temp);
+                //RBG_LED((RGB)strobeQuene[colorBufferOut()], cycleLED);
+                RBG_LED((RGB)temp, true);
+            }
+            else
+            {
+                RBG_LED(color, cycleLED);
+            }
         }
         else
         {
-            RBG_LED(color, cycleLED);
+            digitalWrite(GPIO_NUM_16, HIGH);
+            digitalWrite(GPIO_NUM_17, HIGH);
+            digitalWrite(GPIO_NUM_32, HIGH);
+            digitalWrite(GPIO_NUM_33, HIGH);
+            digitalWrite(GPIO_NUM_15, HIGH);
+            digitalWrite(GPIO_NUM_14, HIGH);
         }
         cycleLED = !cycleLED;
         LEDTimer = currentTime;
