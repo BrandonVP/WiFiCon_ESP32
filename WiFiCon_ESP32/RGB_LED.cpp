@@ -135,9 +135,16 @@ void strobe_LED(RGB color)
 
     if (currentTime - LEDTimer > getInterval() )//LED_STROBE_INTERVAL
     {
+        //Serial.print("getInterval(): ");
+        //Serial.println(getInterval());
+        //Serial.print("Stack Size: ");
+        //Serial.println(colorStackSize());
         if (colorStackSize() > 0)
         {
+            //Serial.print("Color ");
+            //Serial.println(strobeQuene[colorBufferOut()]);
             RBG_LED((RGB)strobeQuene[colorBufferOut()], cycleLED);
+            //RBG_LED((RGB)BLUE, cycleLED);
         }
         else
         {
@@ -172,7 +179,7 @@ uint16_t getInterval()
 {
     if (colorStackSize() > 0)
     {
-        return LED_STROBE_INTERVAL - (colorStackSize() * 50);
+        return LED_STROBE_INTERVAL - (colorStackSize() * 33);
     }
     else
     {

@@ -11,8 +11,9 @@
 //#define DEBUG_OnDataRecv
 //#define DEBUG_TaskEmptyBuffer
 //#define DEBUG_OnDataSent
-//#define DEBUG_CANBusRX
-//#define DEBUG_CANBusTX
+#define DEBUG_CANBusRX
+#define DEBUG_CANBusTX
+#define DEBUG_ESPNOW_OFF
 
 #if CONFIG_FREERTOS_UNICORE
 #define ESP32_RUNNING_CORE 0
@@ -160,12 +161,12 @@ void CANBusRX(CAN_FRAME* frame)
     {
         txCANFrame.MSG[i] = frame->data.uint8[i];
     }
-    esp_now_send(broadcastAddress, (uint8_t*)&txCANFrame, sizeof(txCANFrame));
+    //esp_now_send(broadcastAddress, (uint8_t*)&txCANFrame, sizeof(txCANFrame));
 
     // Add a green flash to the buffer to indicate incoming CAN Bus traffic
     xSemaphoreTake(xBufferSemaphore, portMAX_DELAY);
     strobeQue(GREEN);
-    xSemaphoreGive(xBufferSemaphore);
+    xSemaphoreGive(xBufferSemaphore); 
 }
 
 /*=========================================================
@@ -197,7 +198,7 @@ void TaskEmptyBuffer(void* pvParameters)
 #endif
             CAN0.sendFrame(TxFrame);
         }
-        vTaskDelay(8);
+        vTaskDelay(6);
     }
 }
 
@@ -286,7 +287,7 @@ void setup()
     // Setup FreeRTOS tasks and Semaphore
     xBufferSemaphore = xSemaphoreCreateCounting(1, 1);
     xSemaphoreGive(xBufferSemaphore);
-    xTaskCreatePinnedToCore(TaskEmptyBuffer, "TaskEmptyBuffer", 1024  , NULL, 2  , NULL, ESP32_RUNNING_CORE);
+    xTaskCreatePinnedToCore(TaskEmptyBuffer, "TaskEmptyBuffer", 1024  , NULL, 2, NULL, ESP32_RUNNING_CORE);
     xTaskCreatePinnedToCore(TaskLEDControl, "TaskLEDControl", 1024, NULL, 3, NULL, ESP32_RUNNING_CORE);
     vTaskStartScheduler();
 }
@@ -295,9 +296,11 @@ void setup()
 void CANBusTXTest()
 {
     static uint32_t timer55 = 0;
-    if (millis() - timer55 > 1000)
+    if (millis() - timer55 > 2000)
     {
-        //digitalWrite(17, !LED);
+        xSemaphoreTake(xBufferSemaphore, portMAX_DELAY);
+        strobeQue(BLUE);
+        xSemaphoreGive(xBufferSemaphore);
         CAN_FRAME TxFrame;
         TxFrame.rtr = 0;
         TxFrame.id = 0x01;
