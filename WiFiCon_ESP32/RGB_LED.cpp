@@ -58,45 +58,56 @@ void decreaseStrobeSpeed()
 }
 
 // Set color and on/off status of RGB LED
-void RBG_LED(uint8_t color, bool isOn)
+void RBG_LED(RGB color, bool isOn)
 {
-    if (color == RED)
-    {
-        digitalWrite(GPIO_NUM_15, HIGH);
-        digitalWrite(GPIO_NUM_16, HIGH);
-        digitalWrite(GPIO_NUM_17, HIGH);
-
-        digitalWrite(GPIO_NUM_32, HIGH);
-        digitalWrite(GPIO_NUM_33, HIGH);
-        digitalWrite(GPIO_NUM_14, HIGH);
-
-        (isOn) ? digitalWrite(GPIO_NUM_17, LOW) : digitalWrite(GPIO_NUM_17, HIGH);
-        (isOn) ? digitalWrite(GPIO_NUM_14, LOW) : digitalWrite(GPIO_NUM_14, HIGH);
-    }
     if (color == BLUE)
     {
-        digitalWrite(GPIO_NUM_15, HIGH);
         digitalWrite(GPIO_NUM_16, HIGH);
         digitalWrite(GPIO_NUM_17, HIGH);
-
         digitalWrite(GPIO_NUM_32, HIGH);
         digitalWrite(GPIO_NUM_33, HIGH);
-        digitalWrite(GPIO_NUM_14, HIGH);
-
+        
         (isOn) ? digitalWrite(GPIO_NUM_15, LOW) : digitalWrite(GPIO_NUM_15, HIGH);
-        (isOn) ? digitalWrite(GPIO_NUM_32, LOW) : digitalWrite(GPIO_NUM_32, HIGH);
+        (isOn) ? digitalWrite(GPIO_NUM_14, LOW) : digitalWrite(GPIO_NUM_14, HIGH);
     }
     if (color == GREEN)
     {
         digitalWrite(GPIO_NUM_15, HIGH);
-        digitalWrite(GPIO_NUM_16, HIGH);
         digitalWrite(GPIO_NUM_17, HIGH);
-
-        digitalWrite(GPIO_NUM_32, HIGH);
-        digitalWrite(GPIO_NUM_33, HIGH);
         digitalWrite(GPIO_NUM_14, HIGH);
+        digitalWrite(GPIO_NUM_33, HIGH);
 
         (isOn) ? digitalWrite(GPIO_NUM_16, LOW) : digitalWrite(GPIO_NUM_16, HIGH);
+        (isOn) ? digitalWrite(GPIO_NUM_32, LOW) : digitalWrite(GPIO_NUM_32, HIGH);
+    }
+    if (color == RED)
+    {
+        digitalWrite(GPIO_NUM_15, HIGH);
+        digitalWrite(GPIO_NUM_16, HIGH);
+        digitalWrite(GPIO_NUM_14, HIGH);
+        digitalWrite(GPIO_NUM_32, HIGH);
+
+        (isOn) ? digitalWrite(GPIO_NUM_17, LOW) : digitalWrite(GPIO_NUM_17, HIGH);
+        (isOn) ? digitalWrite(GPIO_NUM_33, LOW) : digitalWrite(GPIO_NUM_33, HIGH);
+    }
+    if (color == TEAL)
+    {
+        digitalWrite(GPIO_NUM_17, HIGH);
+        digitalWrite(GPIO_NUM_33, HIGH);
+
+        (isOn) ? digitalWrite(GPIO_NUM_15, LOW) : digitalWrite(GPIO_NUM_15, HIGH);
+        (isOn) ? digitalWrite(GPIO_NUM_16, LOW) : digitalWrite(GPIO_NUM_16, HIGH);
+        (isOn) ? digitalWrite(GPIO_NUM_14, LOW) : digitalWrite(GPIO_NUM_14, HIGH);
+        (isOn) ? digitalWrite(GPIO_NUM_32, LOW) : digitalWrite(GPIO_NUM_32, HIGH);
+    }
+    if (color == PURPLE)
+    {
+        digitalWrite(GPIO_NUM_16, HIGH);
+        digitalWrite(GPIO_NUM_32, HIGH);
+
+        (isOn) ? digitalWrite(GPIO_NUM_15, LOW) : digitalWrite(GPIO_NUM_15, HIGH);
+        (isOn) ? digitalWrite(GPIO_NUM_17, LOW) : digitalWrite(GPIO_NUM_17, HIGH);
+        (isOn) ? digitalWrite(GPIO_NUM_14, LOW) : digitalWrite(GPIO_NUM_14, HIGH);
         (isOn) ? digitalWrite(GPIO_NUM_33, LOW) : digitalWrite(GPIO_NUM_33, HIGH);
     }
 }
@@ -111,14 +122,14 @@ void strobe_LED_RGB(void)
 
     if (currentTime - LEDTimer > LED_STROBE_INTERVAL)//LED_STROBE_INTERVAL)
     {
-        RBG_LED(color, true);
+        RBG_LED((RGB)color, true);
         (color > BLUE) ? color = RED : color++;
         LEDTimer = currentTime;
     }
 }
 
 // Strobe Red Blue Green (RBG) colors
-void strobe_LED(uint8_t color)
+void strobe_LED(RGB color)
 {
     uint32_t currentTime = millis();
 
@@ -126,7 +137,7 @@ void strobe_LED(uint8_t color)
     {
         if (colorStackSize() > 0)
         {
-            RBG_LED(strobeQuene[colorBufferOut()], cycleLED);
+            RBG_LED((RGB)strobeQuene[colorBufferOut()], cycleLED);
         }
         else
         {
@@ -138,13 +149,13 @@ void strobe_LED(uint8_t color)
 }
 
 // Add color to buffer
-void strobeQue(uint8_t color)
+void strobeQue(RGB color)
 {
     strobeQuene[colorBufferIn()] = color;
 }
 
 // Strobe Red Blue Green (RBG) colors
-void fast_strobe_LED(uint8_t color)
+void fast_strobe_LED(RGB color)
 {
     uint32_t currentTime = millis();
 

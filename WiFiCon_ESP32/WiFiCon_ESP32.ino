@@ -28,8 +28,8 @@
 #include "RGB_LED.h"
 
 //#define DEBUG
-#define CAN_BAUD_RATE 1000000
-//#define CAN_BAUD_RATE 500000
+//#define CAN_BAUD_RATE 1000000
+#define CAN_BAUD_RATE 500000
 #define SERIAL_BAUD_RATE 115200
 #define ID_MATCH 0xFFF
 #define ARM1_RX 0x0C1
@@ -40,8 +40,8 @@
 // 94:B9:7E:D5:F1:94 // SOC PCB
 // Mac Address: C8:C9:A3:FB:20:20 // OBD2 V1.2
 // REPLACE WITH THE MAC Address of your receiver 
-//uint8_t broadcastAddress[] = { 0xD8, 0xF1, 0x5B, 0x15, 0x8E, 0x9A };
-uint8_t broadcastAddress[] = { 0x9C, 0x9C, 0x1F, 0xDD, 0x4B, 0xD0 };
+uint8_t broadcastAddress[] = { 0xD8, 0xF1, 0x5B, 0x15, 0x8E, 0x9A };
+//uint8_t broadcastAddress[] = { 0x9C, 0x9C, 0x1F, 0xDD, 0x4B, 0xD0 };
 
 // Task declarations
 void TaskEmptyBuffer(void* pvParameters);
@@ -211,6 +211,11 @@ void TaskLEDControl(void* pvParameters)
         xSemaphoreTake(xBufferSemaphore, portMAX_DELAY);
         strobe_LED(RED);
         xSemaphoreGive(xBufferSemaphore);
+
+        // Good a place as any to put this tx test line
+#if defined DEBUG_CANBusTX
+        CANBusTXTest();
+#endif
     }
 }
 
@@ -255,7 +260,7 @@ void setup()
 
     // CAN Bus setup
     CAN0.setCANPins(GPIO_NUM_26, GPIO_NUM_25);
-    CAN0.begin(CAN_BAUD_RATE);
+    CAN0.begin(CAN_BAUD_RATE * 2); // Library software bug is halving the baud rate
 #if defined SIXDOF
     CAN0.watchFor(ARM1_RX, ID_MATCH); // Filter 0
     CAN0.setCallback(0, CANBusRX); // Callback filter 0
@@ -273,6 +278,10 @@ void setup()
     pinMode(GPIO_NUM_32, OUTPUT);
     pinMode(GPIO_NUM_33, OUTPUT);
     pinMode(GPIO_NUM_14, OUTPUT);
+
+    // CAN BUS Transceiver
+    pinMode(GPIO_NUM_27, OUTPUT);
+    digitalWrite(GPIO_NUM_27, LOW);
 
     // Setup FreeRTOS tasks and Semaphore
     xBufferSemaphore = xSemaphoreCreateCounting(1, 1);
@@ -304,10 +313,8 @@ void CANBusTXTest()
     }
 }
 
-// Nothing to see here
+
 void loop()
 {
-#if defined DEBUG_CANBusTX
-    CANBusTXTest();
-#endif
+    // Nothing to see here
 }
