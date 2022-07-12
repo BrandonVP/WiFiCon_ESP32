@@ -1,5 +1,11 @@
 # WiFiCon_ESP32
 
-This is part of the WirelessControlBox project and is used to sned CAN Bus messages over WiFi.
+Send and received CAN Bus data over WiFi connection.
 
-![alt text](https://github.com/BrandonVP/WiFiCon_ESP32/blob/master/esp32CANBus.jpg)
+Used in  projects:
+
+WirelessControlBox
+
+ScanTool
+
+![alt text](https://github.com/BrandonVP/WiFiCon_ESP32/blob/master/ESP32_CAN_Sch.jpg)
