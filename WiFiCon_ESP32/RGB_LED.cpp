@@ -182,14 +182,57 @@ void fast_strobe_LED(RGB color)
 // Calculate the current interval
 uint16_t getInterval()
 {
+    // Rolling it out instead of multiplication to observe if there is any performance benefit
+    switch (colorStackSize())
+    {
+    case 0:
+        return LED_STROBE_INTERVAL;
+    case 1:
+        return 492;
+    case 2:
+        return 459;
+    case 3:
+        return 426;
+    case 4:
+        return 393;
+    case 5:
+        return 360;
+    case 6:
+        return 327;
+    case 7:
+        return 294;
+    case 8:
+        return 261;
+    case 9:
+        return 228;
+    case 10:
+        return 195;
+    case 11:
+        return 162;
+    case 12:
+        return 129;
+    case 13:
+        return 96;
+    case 14:
+        return 63;
+    case 15:
+        return 20;
+    case 16: // Incase I adjust something with the buffer and hit this value
+        return 10;
+    default:
+        return LED_STROBE_INTERVAL;
+    }
+
+    /*
     if (colorStackSize() > 0)
     {
-        return LED_STROBE_INTERVAL - (colorStackSize() * 34);
+        return LED_STROBE_INTERVAL - (colorStackSize() * 33);
     }
     else
     {
         return LED_STROBE_INTERVAL;
     }
+    */
 }
 
 #endif // !_RGB_LED_CPP

@@ -22,12 +22,18 @@
 #define ESP32_RUNNING_CORE 1
 #endif
 
+/*=========================================================
+                START - DEBUG / TESTING
+===========================================================*/
 //#define DEBUG_OnDataRecv
 //#define DEBUG_TaskEmptyBuffer
 //#define DEBUG_OnDataSent
 #define DEBUG_CANBusRX
 #define DEBUG_CANBusTX
 #define DEBUG_TURN_OFF_ESPNOW // Causing a core panic during testing when called and not connected
+/*=========================================================
+                END - DEBUG / TESTING
+===========================================================*/
 
 #define CAN_BAUD_RATE 500000
 #define SERIAL_BAUD_RATE 115200
@@ -52,10 +58,10 @@
 /*
 Dongle Beta Unit Mac Addresses
 1: C8:C9:A3:F9:FD:04
-2: 
-3: 
-4:
-5: 
+2: C8:C9:A3:F9:C4:94
+3: C8:C9:A3:FA:BB:E8
+4: 8C:4B:14:9F:94:50
+5: C8:C9:A3:FA:BA:2C
 
 V1.2: C8:C9:A3:FB:20:20
 */
