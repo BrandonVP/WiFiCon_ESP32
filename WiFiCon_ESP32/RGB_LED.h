@@ -31,6 +31,5 @@ extern void strobe_LED(RGB);
 extern void fast_strobe_LED(RGB);
 extern uint16_t getInterval();
 extern void strobeQue(RGB);
-extern void decreaseStrobeSpeed();
 #endif
 

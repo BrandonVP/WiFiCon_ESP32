@@ -7,9 +7,9 @@
 #ifndef _RGB_LED_CPP
 #define _RGB_LED_CPP
 
-bool cycleLED = true;
-uint32_t LEDTimer = 0;
-uint16_t strobeSpeed = 500;
+static bool cycleLED = true;
+static uint32_t LEDTimer = 0;
+static uint16_t strobeSpeed = 500;
 
 /*=========================================================
             Circular Buffer
@@ -48,15 +48,6 @@ uint8_t colorStackSize()
 /*=========================================================
             RGB LED
 ===========================================================*/
-// Increase speed to match traffic
-void decreaseStrobeSpeed()
-{
-    if (strobeSpeed > 10)
-    {
-        strobeSpeed = strobeSpeed - 10;
-    }
-}
-
 // Set color and on/off status of RGB LED
 void RBG_LED(RGB color, bool isOn)
 {
@@ -193,7 +184,7 @@ uint16_t getInterval()
 {
     if (colorStackSize() > 0)
     {
-        return LED_STROBE_INTERVAL - (colorStackSize() * 33);
+        return LED_STROBE_INTERVAL - (colorStackSize() * 34);
     }
     else
     {
