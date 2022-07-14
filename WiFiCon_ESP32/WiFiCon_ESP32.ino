@@ -28,9 +28,9 @@
 //#define DEBUG_OnDataRecv
 //#define DEBUG_TaskEmptyBuffer
 //#define DEBUG_OnDataSent
-#define DEBUG_CANBusRX
-#define DEBUG_CANBusTX
-#define DEBUG_TURN_OFF_ESPNOW // Causing a core panic during testing when called and not connected
+//#define DEBUG_CANBusRX
+//#define DEBUG_CANBusTX
+//#define DEBUG_TURN_OFF_ESPNOW // Causing a core panic during testing when called and not connected
 /*=========================================================
                 END - DEBUG / TESTING
 ===========================================================*/
@@ -67,7 +67,8 @@ V1.2: C8:C9:A3:FB:20:20
 */
 
 // REPLACE WITH THE MAC Address of your receiver 
-uint8_t broadcastAddress[] = { 0xD8, 0xF1, 0x5B, 0x15, 0x8E, 0x9A }; // 6DOF Remote
+//uint8_t broadcastAddress[] = { 0xD8, 0xF1, 0x5B, 0x15, 0x8E, 0x9A }; // 6DOF Remote
+uint8_t broadcastAddress[] = { 0xE8, 0xDB, 0x84, 0x9C, 0xA1, 0x11 }; // 
 //uint8_t broadcastAddress[] = { 0x9C, 0x9C, 0x1F, 0xDD, 0x4B, 0xD0 }; // ScanTool B
 //uint8_t broadcastAddress[] = { 0x9C, 0x9C, 0x1F, 0xDD, 0x4B, 0xD0 }; // ScanTool H
 
@@ -76,11 +77,13 @@ void TaskEmptyBuffer(void* pvParameters);
 
 // Semaphore handle for shared LED resources
 SemaphoreHandle_t xLEDSemaphore;
+SemaphoreHandle_t xBufferSemaphore;
 
 // CAN Bus structure
 typedef struct struct_message 
 {
     uint16_t ID;
+    uint8_t LENGTH;
     uint8_t MSG[8];
 } struct_message;
 
@@ -90,10 +93,11 @@ static struct_message txCANFrame;
 // esp32_can library print frame method used for testing and debugging
 void printFrame(CAN_FRAME* message)
 {
+    Serial.print("ID: ");
     Serial.print(message->id, HEX);
-    if (message->extended) Serial.print(" X ");
-    else Serial.print(" S ");
+    Serial.print(" LENGTH: ");
     Serial.print(message->length, DEC);
+    Serial.print(" DATA: ");
     for (int i = 0; i < message->length; i++) {
         Serial.print(message->data.byte[i], HEX);
         Serial.print(" ");
@@ -145,7 +149,7 @@ void OnDataRecv(const uint8_t* mac, const uint8_t* incomingData, int len)
 {
     uint8_t buffPtr = CAN_Buff_In();
     memcpy(&rxCANFrame[buffPtr], incomingData, sizeof(rxCANFrame[buffPtr]));
-
+    
     // Add strobe to que
     xSemaphoreTake(xLEDSemaphore, portMAX_DELAY);
     strobeQue((RGB)PURPLE);
@@ -189,6 +193,7 @@ void CANBusRX(CAN_FRAME* frame)
 #endif
    
     txCANFrame.ID = frame->id;
+    txCANFrame.LENGTH = frame->length;
     for (uint8_t i = 0; i < 8; i++)
     {
         txCANFrame.MSG[i] = frame->data.uint8[i];
@@ -197,6 +202,7 @@ void CANBusRX(CAN_FRAME* frame)
     // TODO: Can the connection be checked before calling?
 #if !defined DEBUG_TURN_OFF_ESPNOW
         esp_now_send(broadcastAddress, (uint8_t*)&txCANFrame, sizeof(txCANFrame));
+        //esp_now_send(broadcastAddress, (uint8_t*)&txCANFrame, sizeof(txCANFrame));
 #endif
     
     // Add strobe to que
@@ -214,6 +220,14 @@ void TaskEmptyBuffer(void* pvParameters)
     (void)pvParameters;
     for (;;)
     {
+        /*
+        static uint32_t timer5 = 0;
+        if (millis() - timer5 > 1000)
+        {
+            Serial.println(stack_size());
+            timer5 = millis();
+        }
+        */
         // If traffic to empty
         if (stack_size() > 0)
         {
@@ -224,23 +238,20 @@ void TaskEmptyBuffer(void* pvParameters)
             TxFrame.rtr = 0;
             TxFrame.id = rxCANFrame[buffPtr].ID;
             TxFrame.extended = false;
-            TxFrame.length = 8;
+            TxFrame.length = rxCANFrame[buffPtr].LENGTH;
             for (uint8_t i = 0; i < 8; i++)
             {
                 TxFrame.data.uint8[i] = rxCANFrame[buffPtr].MSG[i];
             }
             CAN0.sendFrame(TxFrame);
-
             // Add strobe to que
             xSemaphoreTake(xLEDSemaphore, portMAX_DELAY);
             strobeQue((RGB)BLUE);
             xSemaphoreGive(xLEDSemaphore);
-
+        }
 #if defined DEBUG_TaskEmptyBuffer
             printFrame(&TxFrame);
-#endif
-        }
-        // TODO: Testing needed to determine delay
+#endif  
         vTaskDelay(2);
     }
 }
@@ -251,6 +262,7 @@ void TaskLEDControl(void* pvParameters)
     (void)pvParameters;
     for (;;)
     {
+
         // Traffic status LED
         xSemaphoreTake(xLEDSemaphore, portMAX_DELAY);
         strobe_LED((RGB)RED);
@@ -260,6 +272,7 @@ void TaskLEDControl(void* pvParameters)
 #if defined DEBUG_CANBusTX
         CANBusTXTest();
 #endif
+        vTaskDelay(1);
     }
 }
 
@@ -331,8 +344,7 @@ void setup()
     xLEDSemaphore = xSemaphoreCreateCounting(1, 1);
     xSemaphoreGive(xLEDSemaphore);
     xTaskCreatePinnedToCore(TaskEmptyBuffer, "TaskEmptyBuffer", 1024  , NULL, 2, NULL, ESP32_RUNNING_CORE);
-    xTaskCreatePinnedToCore(TaskLEDControl, "TaskLEDControl", 1024, NULL, 3, NULL, ESP32_RUNNING_CORE);
-    vTaskStartScheduler();
+    xTaskCreatePinnedToCore(TaskLEDControl, "TaskLEDControl", 1024, NULL, 2, NULL, ESP32_RUNNING_CORE);
 }
 
 // For testing new hardware
